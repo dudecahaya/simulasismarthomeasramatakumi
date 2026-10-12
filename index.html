@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Smart Dormitory IoT - Asrama 4 Orang</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts for LCD Matrix and UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Share+Tech+Mono&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .lcd-font {
+            font-family: 'Share Tech Mono', monospace;
+            text-shadow: 0 0 6px rgba(57, 255, 20, 0.7);
+        }
+
+        .tech-font {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+
+        /* LCD Screen Styling */
+        .lcd-screen {
+            background-color: #051a08;
+            border: 3px solid #15803d;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9), 0 0 15px rgba(34, 197, 94, 0.2);
+        }
+
+        /* Pulsing Glow Animation for 10s Selection Window */
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(234, 179, 8, 0.4), inset 0 0 10px rgba(234, 179, 8, 0.2);
+                border-color: #eab308;
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(234, 179, 8, 0.8), inset 0 0 15px rgba(234, 179, 8, 0.4);
+                border-color: #fef08a;
+            }
+        }
+
+        .exit-window-active {
+            animation: pulseGlow 1.2s infinite ease-in-out;
+        }
+
+        /* Validation Glow for 5s Selection Confirmation */
+        .validated-glow-lama {
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.9) !important;
+            border-color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.2) !important;
+        }
+
+        .validated-glow-sebentar {
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.9) !important;
+            border-color: #0ea5e9 !important;
+            background-color: rgba(14, 165, 233, 0.2) !important;
+        }
+
+        /* AC Air Wave Animation */
+        @keyframes airFlow {
+            0% { transform: translateY(0) scaleX(1); opacity: 0.8; }
+            50% { transform: translateY(12px) scaleX(1.1); opacity: 0.4; }
+            100% { transform: translateY(24px) scaleX(1); opacity: 0; }
+        }
+
+        .air-wave {
+            animation: airFlow 1.5s infinite linear;
+        }
+
+        /* AC Fan Spin */
+        @keyframes spinSlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .spin-fan {
+            animation: spinSlow 0.8s infinite linear;
+        }
+
+        /* Ambient Room Lighting Smooth Overlay */
+        .room-light-on {
+            background: radial-gradient(circle at 50% 50%, rgba(254, 240, 138, 0.25) 0%, rgba(251, 191, 36, 0.1) 60%, rgba(15, 23, 42, 0) 100%);
+        }
+
+        /* Door Angle Animation */
+        .door-panel {
+            transform-origin: top left;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .door-open {
+            transform: rotate(-85deg);
+        }
+
+        .door-closed {
+            transform: rotate(0deg);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 md:p-6 flex flex-col justify-between">
+
+    <header class="max-w-7xl mx-auto w-full mb-4">
+        <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/80 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-indigo-400">
+                    <i data-lucide="shield-check" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tech-font tracking-wide text-white flex items-center gap-2">
+                        SMART DORM LOCK & CLIMATE
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Asrama 4 Orang</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Simulasi Kontrol IoT Otomatisasi Akses Ganda & Hemat Energi</p>
+                </div>
+            </div>
+
+            <!-- Quick Demo Preset Bar for Live Presentation -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <span class="text-xs text-slate-400 font-medium mr-1 hidden lg:inline">Akses Cepat Presentasi:</span>
+                <button onclick="demoPW1()" class="px-3 py-1.5 text-xs bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-lg transition-all flex items-center gap-1.5">
+                    <i data-lucide="key" class="w-3.5 h-3.5"></i> PIN 123 (Penuh)
+                </button>
+                <button onclick="demoPW2()" class="px-3 py-1.5 text-xs bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 rounded-lg transition-all flex items-center gap-1.5">
+                    <i data-lucide="key-round" class="w-3.5 h-3.5"></i> PIN 321 (Lampu)
+                </button>
+                <button onclick="toggleMute()" id="soundBtn" class="p-2 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 rounded-lg transition-all" title="Toggle Suara">
+                    <i data-lucide="volume-2" class="w-4 h-4" id="soundIcon"></i>
+                </button>
+                <button onclick="resetSystem()" class="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 rounded-lg transition-all flex items-center gap-1" title="Reset Simulasi">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Grid Layout -->
+    <main class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+
+        <!-- LEFT COLUMN: CONTROL PANEL & KEYPAD (lg:col-span-5) -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+            
+            <!-- Smart Door Lock Hardware Card -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                    <h2 class="text-sm font-semibold tech-font text-slate-200 tracking-wider flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i> PANEL KONTROL SMARTDOOR
+                    </h2>
+                    <span id="systemStatusBadge" class="text-xs px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 font-medium">Standby</span>
+                </div>
+
+                <!-- 16x2 LCD Display Screen -->
+                <div class="lcd-screen rounded-xl p-4 flex flex-col justify-between h-24 relative overflow-hidden">
+                    <div class="absolute top-1 right-2 text-[9px] text-green-600/60 font-mono">LCD 16x2 I2C</div>
+                    <div id="lcdLine1" class="lcd-font text-green-400 text-lg tracking-widest uppercase">Smart Dorm Lock</div>
+                    <div id="lcdLine2" class="lcd-font text-green-400 text-base tracking-widest uppercase flex justify-between items-center">
+                        <span id="lcdText2">Masukkan PIN:</span>
+                        <span id="pinMask" class="text-emerald-300 font-bold"></span>
+                    </div>
+                </div>
+
+                <!-- DIGITAL KEYPAD MATRIX -->
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-slate-400 font-medium mb-3 text-center flex items-center justify-center gap-1.5">
+                        <i data-lucide="grid" class="w-3.5 h-3.5"></i> Keypad Akses PIN Digital
+                    </div>
+                    <div class="grid grid-cols-3 gap-2.5 max-w-xs mx-auto">
+                        <button onclick="pressKey('1')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">1</button>
+                        <button onclick="pressKey('2')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">2</button>
+                        <button onclick="pressKey('3')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">3</button>
+                        <button onclick="pressKey('4')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">4</button>
+                        <button onclick="pressKey('5')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">5</button>
+                        <button onclick="pressKey('6')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">6</button>
+                        <button onclick="pressKey('7')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">7</button>
+                        <button onclick="pressKey('8')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">8</button>
+                        <button onclick="pressKey('9')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">9</button>
+                        <button onclick="pressKey('*')" class="keypad-btn h-12 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 active:bg-rose-600 text-rose-300 font-bold text-base border border-rose-800/50 shadow transition-all active:scale-95" title="Hapus Input">CLEAR (*)</button>
+                        <button onclick="pressKey('0')" class="keypad-btn h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-100 font-bold text-lg border border-slate-600/60 shadow transition-all active:scale-95">0</button>
+                        <button onclick="pressKey('#')" class="keypad-btn h-12 rounded-xl bg-emerald-950/50 hover:bg-emerald-800/60 active:bg-emerald-600 text-emerald-300 font-bold text-base border border-emerald-700/50 shadow transition-all active:scale-95" title="Konfirmasi PIN">OK (#)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MANUAL DOOR & EXIT MODE CONTROL PANEL CARD -->
+            <div id="exitPanelCard" class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col gap-4 transition-all duration-300">
+                <div class="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                    <h2 class="text-sm font-semibold tech-font text-slate-200 tracking-wider flex items-center gap-2">
+                        <i data-lucide="door-closed" class="w-4 h-4 text-amber-400"></i> PENUTUPAN & PENGUNCIAN PINTU
+                    </h2>
+                    <button onclick="toggleDoorManual()" id="manualDoorBtn" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-all flex items-center gap-1.5">
+                        <i data-lucide="door-open" class="w-3.5 h-3.5" id="doorBtnIcon"></i> <span id="doorBtnText">Tutup Pintu (Manual)</span>
+                    </button>
+                </div>
+
+                <!-- 10-Second Active Countdown Window Alert -->
+                <div id="countdownAlert" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex flex-col gap-2">
+                    <div class="flex items-center justify-between text-xs text-amber-300 font-semibold">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                            Pintu Baru Ditutup! Pilih Mode Penguncian:
+                        </span>
+                        <span id="countdownTimer" class="font-mono text-sm bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40 text-amber-200">10s</span>
+                    </div>
+                    <!-- Visual Progress Bar -->
+                    <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                        <div id="countdownBar" class="bg-amber-400 h-full w-full transition-all duration-1000 ease-linear"></div>
+                    </div>
+                </div>
+
+                <!-- DUAL EXIT LOCK BUTTONS -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    
+                    <!-- TOMBOL 1: KELUAR LAMA (RUMAH KOSONG) -->
+                    <button onclick="selectExitMode('lama')" id="btnExitLama" class="group relative p-4 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-left transition-all duration-300 flex flex-col justify-between gap-3 overflow-hidden">
+                        <!-- Tiny Ambient Selection Light Dot -->
+                        <div id="dotLama" class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-slate-600 transition-all"></div>
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 group-hover:scale-105 transition-transform">
+                                <i data-lucide="luggage" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-slate-100 uppercase tracking-wide">Keluar Lama</div>
+                                <div class="text-[10px] text-slate-400">Kosong Durasi Panjang</div>
+                            </div>
+                        </div>
+
+                        <div class="text-[11px] text-slate-300 bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 leading-snug">
+                            🔒 Kunci Pintu<br>
+                            💡 Lampu: <span class="text-rose-400 font-semibold">MATI</span><br>
+                            ❄️ AC: <span class="text-rose-400 font-semibold">MATI (Shutdown)</span>
+                        </div>
+                    </button>
+
+                    <!-- TOMBOL 2: KELUAR SEBENTAR (PERGI SEJENAK) -->
+                    <button onclick="selectExitMode('sebentar')" id="btnExitSebentar" class="group relative p-4 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-left transition-all duration-300 flex flex-col justify-between gap-3 overflow-hidden">
+                        <!-- Tiny Ambient Selection Light Dot -->
+                        <div id="dotSebentar" class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-slate-600 transition-all"></div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 group-hover:scale-105 transition-transform">
+                                <i data-lucide="footprints" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-slate-100 uppercase tracking-wide">Keluar Sebentar</div>
+                                <div class="text-[10px] text-slate-400">Pergi Beberapa Menit</div>
+                            </div>
+                        </div>
+
+                        <div class="text-[11px] text-slate-300 bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 leading-snug">
+                            🔒 Kunci Pintu<br>
+                            💡 Lampu: <span class="text-rose-400 font-semibold">MATI</span><br>
+                            ❄️ AC: <span class="text-sky-400 font-semibold">TETAP NYALA (Standby)</span>
+                        </div>
+                    </button>
+
+                </div>
+
+                <div class="text-[11px] text-slate-400 flex items-center gap-1.5 justify-center bg-slate-900/50 p-2 rounded-lg border border-slate-700/40">
+                    <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i> Tombol di atas aktif terang 10 detik setelah pintu ditutup.
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- RIGHT COLUMN: DORM ROOM VISUALIZATION & STATUS DASHBOARD (lg:col-span-7) -->
+        <section class="lg:col-span-7 flex flex-col gap-5">
+            
+            <!-- Room Layout Visualization Canvas -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col gap-4 relative overflow-hidden">
+                <div class="flex items-center justify-between border-b border-slate-700/80 pb-3 z-10">
+                    <h2 class="text-sm font-semibold tech-font text-slate-200 tracking-wider flex items-center gap-2">
+                        <i data-lucide="layout-grid" class="w-4 h-4 text-emerald-400"></i> VISUALISASI DENAH KAMAR ASRAMA
+                    </h2>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="flex items-center gap-1 text-slate-300"><span id="indicatorDoorDot" class="w-2 h-2 rounded-full bg-rose-500"></span> Pintu: <strong id="indicatorDoorText" class="text-slate-100">Terkunci</strong></span>
+                        <span class="flex items-center gap-1 text-slate-300"><span id="indicatorLampDot" class="w-2 h-2 rounded-full bg-slate-600"></span> Lampu</span>
+                        <span class="flex items-center gap-1 text-slate-300"><span id="indicatorACDot" class="w-2 h-2 rounded-full bg-slate-600"></span> AC</span>
+                    </div>
+                </div>
+
+                <!-- 2D TOP-DOWN DORM ROOM MAP -->
+                <div id="roomCanvas" class="w-full h-80 bg-slate-950 rounded-xl border border-slate-700/80 relative overflow-hidden transition-all duration-500 flex flex-col justify-between p-4">
+                    
+                    <!-- Ambient Light Overlay Element -->
+                    <div id="roomLightOverlay" class="absolute inset-0 pointer-events-none transition-opacity duration-700 opacity-0 room-light-on z-0"></div>
+
+                    <!-- WALL MOUNTED AC UNIT (Top Wall Center) -->
+                    <div class="absolute top-2 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg px-4 py-1.5 flex flex-col items-center shadow-lg z-10">
+                        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-300">
+                            <i data-lucide="fan" id="acFanIcon" class="w-4 h-4 text-slate-500"></i>
+                            <span>UNIT AC ASRAMA</span>
+                            <span id="acTempBadge" class="text-[9px] px-1.5 py-0.2 bg-slate-700 rounded text-slate-400">OFF</span>
+                        </div>
+                        <!-- Air Wave Stream Graphic -->
+                        <div id="acAirContainer" class="hidden flex gap-2 justify-center mt-1">
+                            <div class="w-1 h-4 bg-sky-400/60 rounded-full air-wave"></div>
+                            <div class="w-1 h-5 bg-sky-300/80 rounded-full air-wave" style="animation-delay: 0.2s"></div>
+                            <div class="w-1 h-4 bg-sky-400/60 rounded-full air-wave" style="animation-delay: 0.4s"></div>
+                        </div>
+                    </div>
+
+                    <!-- TOP SECTION: BEDS 1 & 2 -->
+                    <div class="grid grid-cols-2 gap-12 z-10 mt-6">
+                        <!-- Bed 1 -->
+                        <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-2.5 flex items-center gap-3 shadow-md">
+                            <div class="w-10 h-14 bg-indigo-950 border border-indigo-700/60 rounded flex flex-col justify-between p-1">
+                                <div class="w-full h-3 bg-indigo-300/30 rounded-sm"></div>
+                                <div class="text-[8px] text-indigo-300 text-center font-bold">BED 1</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-slate-200">KASUR 1</div>
+                                <div class="text-[10px] text-slate-400">Penghuni A</div>
+                            </div>
+                        </div>
+
+                        <!-- Bed 2 -->
+                        <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-2.5 flex items-center gap-3 shadow-md">
+                            <div class="w-10 h-14 bg-indigo-950 border border-indigo-700/60 rounded flex flex-col justify-between p-1">
+                                <div class="w-full h-3 bg-indigo-300/30 rounded-sm"></div>
+                                <div class="text-[8px] text-indigo-300 text-center font-bold">BED 2</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-slate-200">KASUR 2</div>
+                                <div class="text-[10px] text-slate-400">Penghuni B</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CENTER ROOM: MAIN CEILING LAMP GRAPHIC -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div id="lampBulbVisual" class="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center transition-all duration-500 shadow-md">
+                            <i data-lucide="lightbulb" id="lampIconGraphic" class="w-6 h-6 text-slate-500"></i>
+                        </div>
+                    </div>
+
+                    <!-- BOTTOM SECTION: BEDS 3 & 4 AND SMARTDOOR ENTRANCE -->
+                    <div class="grid grid-cols-2 gap-12 z-10 mb-2">
+                        <!-- Bed 3 -->
+                        <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-2.5 flex items-center gap-3 shadow-md">
+                            <div class="w-10 h-14 bg-indigo-950 border border-indigo-700/60 rounded flex flex-col justify-between p-1">
+                                <div class="w-full h-3 bg-indigo-300/30 rounded-sm"></div>
+                                <div class="text-[8px] text-indigo-300 text-center font-bold">BED 3</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-slate-200">KASUR 3</div>
+                                <div class="text-[10px] text-slate-400">Penghuni C</div>
+                            </div>
+                        </div>
+
+                        <!-- Bed 4 -->
+                        <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-2.5 flex items-center gap-3 shadow-md">
+                            <div class="w-10 h-14 bg-indigo-950 border border-indigo-700/60 rounded flex flex-col justify-between p-1">
+                                <div class="w-full h-3 bg-indigo-300/30 rounded-sm"></div>
+                                <div class="text-[8px] text-indigo-300 text-center font-bold">BED 4</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-slate-200">KASUR 4</div>
+                                <div class="text-[10px] text-slate-400">Penghuni D</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTTOM WALL ENTRANCE DOOR GRAPHIC -->
+                    <div class="absolute bottom-0 left-12 w-28 h-4 bg-slate-800 border-t-2 border-amber-500/80 flex items-center justify-between px-2 z-20">
+                        <span class="text-[9px] text-amber-300 font-bold uppercase tracking-tighter">PINTU MASUK</span>
+                        
+                        <!-- Door Leaf Frame Swing -->
+                        <div id="doorLeaf" class="door-panel door-closed absolute left-0 bottom-full w-24 h-2 bg-amber-600 border border-amber-400 rounded-t shadow-lg flex items-center justify-center">
+                            <div id="doorLockBadge" class="w-3 h-3 rounded-full bg-rose-600 border border-white flex items-center justify-center">
+                                <i data-lucide="lock" class="w-2 h-2 text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- LIVE SYSTEM COMPONENT STATUS BADGES -->
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 flex items-center gap-3">
+                        <div id="statusDoorIconBg" class="p-2 rounded-lg bg-rose-500/20 text-rose-400">
+                            <i data-lucide="door-closed" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase font-bold">Status Pintu</div>
+                            <div id="statusDoorLabel" class="text-xs font-bold text-rose-400">Terkunci</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 flex items-center gap-3">
+                        <div id="statusLampIconBg" class="p-2 rounded-lg bg-slate-800 text-slate-500">
+                            <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase font-bold">Lampu Utama</div>
+                            <div id="statusLampLabel" class="text-xs font-bold text-slate-400">OFF (Mati)</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 flex items-center gap-3">
+                        <div id="statusACIconBg" class="p-2 rounded-lg bg-slate-800 text-slate-500">
+                            <i data-lucide="snowflake" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase font-bold">AC Kamar</div>
+                            <div id="statusACLabel" class="text-xs font-bold text-slate-400">OFF (Mati)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REAL-TIME LOG EVENT ACTIVITY -->
+                <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-3 flex flex-col gap-2">
+                    <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
+                        <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-400"></i> Log Aktivitas Presentasi
+                        </span>
+                        <button onclick="clearLogs()" class="text-[10px] text-slate-400 hover:text-slate-200">Bersihkan</button>
+                    </div>
+                    <div id="logContainer" class="h-20 overflow-y-auto space-y-1.5 text-[11px] font-mono pr-1">
+                        <div class="text-slate-400">[00:00:00] Sistem dinyalakan. Menunggu input PIN...</div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer Specs Info -->
+    <footer class="max-w-7xl mx-auto w-full mt-4 text-center text-xs text-slate-400 border-t border-slate-800 pt-3">
+        Simulasi Smart Dormitory &bull; Dioptimalkan untuk Lenovo ThinkPad Yoga 11e (Low Spec Hardware Friendly)
+    </footer>
+
+    <script>
+        // SYSTEM STATE DATA
+        const state = {
+            pinInput: "",
+            doorState: "LOCKED", // "LOCKED", "OPEN", "CLOSED"
+            lampState: false,
+            acState: false,
+            exitWindowActive: false,
+            exitCountdown: 10,
+            countdownInterval: null,
+            validationTimeout: null,
+            soundMuted: false
+        };
+
+        // Web Audio API Synthesizer for lightweight native audio
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (state.soundMuted) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'key') {
+                    osc.frequency.setValueAtTime(800, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'grant') {
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'lock') {
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.setValueAtTime(300, now + 0.1);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch (e) {
+                console.log("Audio not supported or blocked");
+            }
+        }
+
+        function toggleMute() {
+            state.soundMuted = !state.soundMuted;
+            const icon = document.getElementById('soundIcon');
+            if (state.soundMuted) {
+                icon.setAttribute('data-lucide', 'volume-x');
+                addLog('Suara simulasi dimatikan.');
+            } else {
+                icon.setAttribute('data-lucide', 'volume-2');
+                addLog('Suara simulasi diaktifkan.');
+            }
+            lucide.createIcons();
+        }
+
+        // KEYPAD ENTRY LOGIC
+        function pressKey(key) {
+            playSound('key');
+
+            if (key === '*') {
+                state.pinInput = "";
+                updateLCD("Smart Dorm Lock", "Masukkan PIN:");
+                updatePinMask();
+                addLog("Input PIN dibersihkan (*)");
+                return;
+            }
+
+            if (key === '#') {
+                validatePIN();
+                return;
+            }
+
+            if (state.pinInput.length < 4) {
+                state.pinInput += key;
+                updatePinMask();
+            }
+        }
+
+        function updatePinMask() {
+            const maskEl = document.getElementById('pinMask');
+            maskEl.textContent = "*".repeat(state.pinInput.length);
+        }
+
+        function validatePIN() {
+            if (state.pinInput === "123") {
+                // PW1: UNLOCK, LAMP ON, AC ON
+                playSound('grant');
+                state.doorState = "OPEN";
+                state.lampState = true;
+                state.acState = true;
+                stopExitCountdown();
+
+                updateLCD("PW1: AKSES PENUH", "LAMPU & AC NYALA");
+                addLog("PIN '123' Benar (PW1): Pintu Terbuka, Lampu NYALA, AC NYALA");
+            } 
+            else if (state.pinInput === "321") {
+                // PW2: UNLOCK, LAMP ON, AC OFF
+                playSound('grant');
+                state.doorState = "OPEN";
+                state.lampState = true;
+                state.acState = false; // AC remains/turns OFF
+                stopExitCountdown();
+
+                updateLCD("PW2: AKSES PARSIAL", "LAMPU NYALA, AC OFF");
+                addLog("PIN '321' Benar (PW2): Pintu Terbuka, Lampu NYALA, AC MATI");
+            } 
+            else {
+                // INVALID PIN
+                playSound('error');
+                updateLCD("PIN SALAH!", "COBA LAGI...");
+                addLog(`PIN '${state.pinInput}' Ditolak! Akses Ditolak.`);
+                setTimeout(() => {
+                    updateLCD("Smart Dorm Lock", "Masukkan PIN:");
+                }, 1800);
+            }
+
+            state.pinInput = "";
+            updatePinMask();
+            renderUI();
+        }
+
+        // MANUAL DOOR CLOSE BUTTON
+        function toggleDoorManual() {
+            playSound('key');
+            if (state.doorState === "OPEN") {
+                state.doorState = "CLOSED";
+                addLog("Pintu ditutup secara manual (Belum Terkunci).");
+                triggerExitWindow();
+            } else if (state.doorState === "CLOSED") {
+                state.doorState = "OPEN";
+                stopExitCountdown();
+                addLog("Pintu dibuka kembali secara manual.");
+            } else if (state.doorState === "LOCKED") {
+                updateLCD("PINTU TERKUNCI", "Gunakan Keypad!");
+                playSound('error');
+                setTimeout(() => {
+                    updateLCD("Smart Dorm Lock", "Masukkan PIN:");
+                }, 1500);
+            }
+            renderUI();
+        }
+
+        // 10-SECOND EXIT LOCK SELECTION WINDOW
+        function triggerExitWindow() {
+            state.exitWindowActive = true;
+            state.exitCountdown = 10;
+
+            const card = document.getElementById('exitPanelCard');
+            card.classList.add('exit-window-active');
+
+            const alertBox = document.getElementById('countdownAlert');
+            alertBox.classList.remove('hidden');
+
+            updateLCD("PINTU DITUTUP", "Pilih Mode Kunci");
+
+            // Start countdown interval
+            clearInterval(state.countdownInterval);
+            updateCountdownBar();
+
+            state.countdownInterval = setInterval(() => {
+                state.exitCountdown--;
+                updateCountdownBar();
+
+                if (state.exitCountdown <= 0) {
+                    stopExitCountdown();
+                    // Auto lock default fallback: Keluar Lama
+                    addLog("Waktu 10s habis! Otomatis mengunci mode Keluar Lama.");
+                    selectExitMode('lama');
+                }
+            }, 1000);
+        }
+
+        function updateCountdownBar() {
+            document.getElementById('countdownTimer').textContent = `${state.exitCountdown}s`;
+            const bar = document.getElementById('countdownBar');
+            const pct = (state.exitCountdown / 10) * 100;
+            bar.style.width = `${pct}%`;
+        }
+
+        function stopExitCountdown() {
+            state.exitWindowActive = false;
+            clearInterval(state.countdownInterval);
+            
+            const card = document.getElementById('exitPanelCard');
+            card.classList.remove('exit-window-active');
+
+            const alertBox = document.getElementById('countdownAlert');
+            alertBox.classList.add('hidden');
+        }
+
+        // DUAL EXIT MODE LOCK BUTTON SELECTION (With 5-Second Validation Light Glow)
+        function selectExitMode(mode) {
+            playSound('lock');
+            stopExitCountdown();
+
+            const btnLama = document.getElementById('btnExitLama');
+            const btnSebentar = document.getElementById('btnExitSebentar');
+            const dotLama = document.getElementById('dotLama');
+            const dotSebentar = document.getElementById('dotSebentar');
+
+            // Reset previous validation timers & classes
+            clearTimeout(state.validationTimeout);
+            btnLama.className = btnLama.className.replace(/validated-glow-\w+/g, '');
+            btnSebentar.className = btnSebentar.className.replace(/validated-glow-\w+/g, '');
+            btnLama.classList.remove('opacity-30', 'pointer-events-none');
+            btnSebentar.classList.remove('opacity-30', 'pointer-events-none');
+
+            if (mode === 'lama') {
+                // LOGIC: LOCK DOOR, LAMP OFF, AC OFF
+                state.doorState = "LOCKED";
+                state.lampState = false;
+                state.acState = false;
+
+                updateLCD("KELUAR LAMA:", "TOTAL SHUTDOWN");
+                addLog("Mode [Keluar Lama] Dipilih: Pintu Terkunci, Lampu MATI, AC MATI");
+
+                // Visual Validation Glow 5s: Highlight Button 1, Dim Button 2
+                btnLama.classList.add('validated-glow-lama');
+                dotLama.className = "absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping";
+                btnSebentar.classList.add('opacity-30', 'pointer-events-none');
+
+            } else if (mode === 'sebentar') {
+                // LOGIC: LOCK DOOR, LAMP OFF, AC STAYS ON
+                state.doorState = "LOCKED";
+                state.lampState = false;
+                state.acState = true; // AC STAYS ON
+
+                updateLCD("KELUAR SEBENTAR:", "AC STANDBY ON");
+                addLog("Mode [Keluar Sebentar] Dipilih: Pintu Terkunci, Lampu MATI, AC TETAP NYALA");
+
+                // Visual Validation Glow 5s: Highlight Button 2, Dim Button 1
+                btnSebentar.classList.add('validated-glow-sebentar');
+                dotSebentar.className = "absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping";
+                btnLama.classList.add('opacity-30', 'pointer-events-none');
+            }
+
+            renderUI();
+
+            // 5 Seconds Validation Timer Reset
+            state.validationTimeout = setTimeout(() => {
+                btnLama.classList.remove('validated-glow-lama', 'opacity-30', 'pointer-events-none');
+                btnSebentar.classList.remove('validated-glow-sebentar', 'opacity-30', 'pointer-events-none');
+                dotLama.className = "absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-slate-600 transition-all";
+                dotSebentar.className = "absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-slate-600 transition-all";
+                updateLCD("Smart Dorm Lock", "Masukkan PIN:");
+            }, 5000);
+        }
+
+        // RENDER UI STATE TO HTML COMPONENTS
+        function renderUI() {
+            // 1. Door Leaf & Visual Status
+            const doorLeaf = document.getElementById('doorLeaf');
+            const doorBadge = document.getElementById('doorLockBadge');
+            const doorBtnText = document.getElementById('doorBtnText');
+            const doorBtnIcon = document.getElementById('doorBtnIcon');
+            const statusDoorLabel = document.getElementById('statusDoorLabel');
+            const statusDoorIconBg = document.getElementById('statusDoorIconBg');
+            const indicatorDoorDot = document.getElementById('indicatorDoorDot');
+            const indicatorDoorText = document.getElementById('indicatorDoorText');
+
+            if (state.doorState === "OPEN") {
+                doorLeaf.className = "door-panel door-open absolute left-0 bottom-full w-24 h-2 bg-emerald-500 border border-emerald-300 rounded-t shadow-lg flex items-center justify-center";
+                doorBadge.className = "w-3 h-3 rounded-full bg-emerald-600 border border-white flex items-center justify-center";
+                doorBadge.innerHTML = `<i data-lucide="door-open" class="w-2 h-2 text-white"></i>`;
+                
+                doorBtnText.textContent = "Tutup Pintu";
+                doorBtnIcon.setAttribute('data-lucide', 'door-closed');
+                
+                statusDoorLabel.textContent = "Terbuka";
+                statusDoorLabel.className = "text-xs font-bold text-emerald-400";
+                statusDoorIconBg.className = "p-2 rounded-lg bg-emerald-500/20 text-emerald-400";
+
+                indicatorDoorDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+                indicatorDoorText.textContent = "Terbuka";
+            } 
+            else if (state.doorState === "CLOSED") {
+                doorLeaf.className = "door-panel door-closed absolute left-0 bottom-full w-24 h-2 bg-amber-500 border border-amber-300 rounded-t shadow-lg flex items-center justify-center";
+                doorBadge.className = "w-3 h-3 rounded-full bg-amber-600 border border-white flex items-center justify-center";
+                doorBadge.innerHTML = `<i data-lucide="unlock" class="w-2 h-2 text-white"></i>`;
+                
+                doorBtnText.textContent = "Buka Pintu";
+                doorBtnIcon.setAttribute('data-lucide', 'door-open');
+
+                statusDoorLabel.textContent = "Tertutup (Belum Kunci)";
+                statusDoorLabel.className = "text-xs font-bold text-amber-400";
+                statusDoorIconBg.className = "p-2 rounded-lg bg-amber-500/20 text-amber-400";
+
+                indicatorDoorDot.className = "w-2 h-2 rounded-full bg-amber-400";
+                indicatorDoorText.textContent = "Tertutup";
+            } 
+            else { // "LOCKED"
+                doorLeaf.className = "door-panel door-closed absolute left-0 bottom-full w-24 h-2 bg-rose-600 border border-rose-400 rounded-t shadow-lg flex items-center justify-center";
+                doorBadge.className = "w-3 h-3 rounded-full bg-rose-700 border border-white flex items-center justify-center";
+                doorBadge.innerHTML = `<i data-lucide="lock" class="w-2 h-2 text-white"></i>`;
+
+                doorBtnText.textContent = "Pintu Terkunci";
+                doorBtnIcon.setAttribute('data-lucide', 'lock');
+
+                statusDoorLabel.textContent = "Terkunci";
+                statusDoorLabel.className = "text-xs font-bold text-rose-400";
+                statusDoorIconBg.className = "p-2 rounded-lg bg-rose-500/20 text-rose-400";
+
+                indicatorDoorDot.className = "w-2 h-2 rounded-full bg-rose-500";
+                indicatorDoorText.textContent = "Terkunci";
+            }
+
+            // 2. Lamp Visual Status
+            const lightOverlay = document.getElementById('roomLightOverlay');
+            const lampBulbVisual = document.getElementById('lampBulbVisual');
+            const lampIconGraphic = document.getElementById('lampIconGraphic');
+            const statusLampLabel = document.getElementById('statusLampLabel');
+            const statusLampIconBg = document.getElementById('statusLampIconBg');
+            const indicatorLampDot = document.getElementById('indicatorLampDot');
+
+            if (state.lampState) {
+                lightOverlay.style.opacity = "1";
+                lampBulbVisual.className = "w-12 h-12 rounded-full bg-amber-300 border-2 border-amber-100 flex items-center justify-center transition-all duration-500 shadow-[0_0_25px_rgba(251,191,36,0.9)]";
+                lampIconGraphic.className = "w-6 h-6 text-amber-900";
+
+                statusLampLabel.textContent = "NYALA (Terang)";
+                statusLampLabel.className = "text-xs font-bold text-amber-300";
+                statusLampIconBg.className = "p-2 rounded-lg bg-amber-500/20 text-amber-300";
+                indicatorLampDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+            } else {
+                lightOverlay.style.opacity = "0";
+                lampBulbVisual.className = "w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center transition-all duration-500 shadow-md";
+                lampIconGraphic.className = "w-6 h-6 text-slate-500";
+
+                statusLampLabel.textContent = "OFF (Mati)";
+                statusLampLabel.className = "text-xs font-bold text-slate-400";
+                statusLampIconBg.className = "p-2 rounded-lg bg-slate-800 text-slate-500";
+                indicatorLampDot.className = "w-2 h-2 rounded-full bg-slate-600";
+            }
+
+            // 3. AC Unit Visual Status
+            const acFanIcon = document.getElementById('acFanIcon');
+            const acTempBadge = document.getElementById('acTempBadge');
+            const acAirContainer = document.getElementById('acAirContainer');
+            const statusACLabel = document.getElementById('statusACLabel');
+            const statusACIconBg = document.getElementById('statusACIconBg');
+            const indicatorACDot = document.getElementById('indicatorACDot');
+
+            if (state.acState) {
+                acFanIcon.className = "w-4 h-4 text-sky-400 spin-fan";
+                acTempBadge.textContent = "22°C";
+                acTempBadge.className = "text-[9px] px-1.5 py-0.2 bg-sky-500/20 text-sky-300 rounded border border-sky-500/30 font-bold";
+                acAirContainer.classList.remove('hidden');
+
+                statusACLabel.textContent = "NYALA (Dingin)";
+                statusACLabel.className = "text-xs font-bold text-sky-400";
+                statusACIconBg.className = "p-2 rounded-lg bg-sky-500/20 text-sky-400";
+                indicatorACDot.className = "w-2 h-2 rounded-full bg-sky-400 animate-pulse";
+            } else {
+                acFanIcon.className = "w-4 h-4 text-slate-500";
+                acTempBadge.textContent = "OFF";
+                acTempBadge.className = "text-[9px] px-1.5 py-0.2 bg-slate-700 rounded text-slate-400";
+                acAirContainer.classList.add('hidden');
+
+                statusACLabel.textContent = "OFF (Mati)";
+                statusACLabel.className = "text-xs font-bold text-slate-400";
+                statusACIconBg.className = "p-2 rounded-lg bg-slate-800 text-slate-500";
+                indicatorACDot.className = "w-2 h-2 rounded-full bg-slate-600";
+            }
+
+            // Refresh Icons
+            lucide.createIcons();
+        }
+
+        // HELPER FUNCTIONS
+        function updateLCD(line1, line2) {
+            document.getElementById('lcdLine1').textContent = line1;
+            document.getElementById('lcdText2').textContent = line2;
+        }
+
+        function addLog(msg) {
+            const container = document.getElementById('logContainer');
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            const item = document.createElement('div');
+            item.className = "text-slate-300 flex items-start gap-1.5";
+            item.innerHTML = `<span class="text-indigo-400 font-bold">[${timeStr}]</span> <span>${msg}</span>`;
+            container.appendChild(item);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = `<div class="text-slate-400">[00:00:00] Log dibersihkan.</div>`;
+        }
+
+        // PRESENTATION PRESET DEMOS
+        function demoPW1() {
+            state.pinInput = "123";
+            validatePIN();
+        }
+
+        function demoPW2() {
+            state.pinInput = "321";
+            validatePIN();
+        }
+
+        function resetSystem() {
+            stopExitCountdown();
+            state.pinInput = "";
+            state.doorState = "LOCKED";
+            state.lampState = false;
+            state.acState = false;
+            updateLCD("Smart Dorm Lock", "Masukkan PIN:");
+            updatePinMask();
+            renderUI();
+            addLog("Sistem berhasil di-reset ke kondisi awal.");
+        }
+
+        // INITIALIZATION ON PAGE LOAD
+        window.onload = function() {
+            lucide.createIcons();
+            renderUI();
+            addLog("Simulasi Smart Dormitory siap digunakan.");
+        };
+    </script>
+</body>
+</html>
